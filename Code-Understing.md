@@ -18,132 +18,15 @@ This application is an Intelligent Sales Assistant built using Snowflake's Corte
 
 ### Component Architecture Diagram
 
-```plantuml
-@startuml
-!theme plain
-
-package "streamlit.py" {
-    class "Main Application" as Main {
-        + main()
-        - initialize_connection()
-        - display_chat_history()
-        - handle_user_input()
-    }
-    
-    class "Database Manager" as DBManager {
-        + get_available_tables()
-        + run_snowflake_query(query)
-        + get_cortex_search_context(query)
-    }
-    
-    class "AI Agent" as Agent {
-        + agent_api_call(prompt, session_id)
-        + generate_sql_from_question(query, tables)
-    }
-    
-    class "Session State" as SessionState {
-        + CONN: Connection
-        + messages: List[Dict]
-    }
-}
-
-Main --> DBManager : Uses
-Main --> Agent : Uses
-Main --> SessionState : Manages
-
-Agent --> DBManager : Calls
-DBManager --> SessionState : Reads Connection
-
-@enduml
-```
+![alt text](image-1.png)
 
 ### Data Flow Diagram
 
-```plantuml
-@startuml
-!theme plain
-
-actor User
-participant "Streamlit UI" as UI
-participant "agent_api_call()" as Agent
-participant "generate_sql_from_question()" as SQLGen
-participant "run_snowflake_query()" as QueryExec
-participant "get_cortex_search_context()" as Search
-participant "Cortex COMPLETE" as Cortex
-database "Snowflake DB" as DB
-
-User -> UI : Enter question
-UI -> Agent : prompt
-activate Agent
-
-Agent -> SQLGen : user_query, tables
-activate SQLGen
-SQLGen -> DB : DESCRIBE TABLE
-DB --> SQLGen : table schemas
-SQLGen -> Cortex : Generate SQL from prompt
-Cortex --> SQLGen : SQL query
-SQLGen --> Agent : generated_sql
-deactivate SQLGen
-
-Agent -> QueryExec : SQL query
-activate QueryExec
-QueryExec -> DB : Execute SQL
-DB --> QueryExec : results
-QueryExec --> Agent : query_results
-deactivate QueryExec
-
-Agent -> Search : user question
-activate Search
-Search -> DB : Cortex Search
-DB --> Search : relevant transcripts
-Search --> Agent : search_results
-deactivate Search
-
-Agent -> Cortex : Interpret results
-Cortex --> Agent : interpretation
-Agent --> UI : streamed response
-deactivate Agent
-
-UI --> User : Display results
-@enduml
-```
+![alt text](image-2.png)
 
 ### Sequence Diagram: User Query Flow
 
-```plantuml
-@startuml
-!theme plain
-
-actor User
-participant "Streamlit" as ST
-participant "agent_api_call" as Agent
-participant "generate_sql" as Gen
-participant "Cortex AI" as AI
-participant "Snowflake DB" as DB
-
-User -> ST: "What was total sales last year?"
-ST -> Agent: Call with prompt
-
-Agent -> Gen: generate_sql_from_question()
-Gen -> DB: Get table schemas
-DB --> Gen: Schema info
-Gen -> AI: Prompt with schema + question
-AI --> Gen: SQL query
-Gen --> Agent: Generated SQL
-
-Agent -> DB: Execute SQL query
-DB --> Agent: Query results
-
-Agent -> DB: get_cortex_search_context()
-DB --> Agent: Related transcripts
-
-Agent -> AI: Interpret results with context
-AI --> Agent: Natural language interpretation
-
-Agent --> ST: Stream response
-ST --> User: Display results
-@enduml
-```
+![alt text](image-3.png)
 
 ## Component Details
 

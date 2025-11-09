@@ -16,7 +16,7 @@ This repository shows you how to build an LLM using Snowflake's API.
 4. Copy and paste the entire [setup.sql](https://github.com/annafil/cortex-agent-api-demo/blob/main/setup.sql) into the worksheet and hit run. It might take a couple of minutes for Step 9 to finish! You should see the following response: 
 `Stage area MODELS successfully created.`
 
-5. Go to `Data` -> `Add Data` -> Click `Load files into a Stage`. 
+5. Go to `Ingestion` -> `Add Data` -> Click `Load files into a Stage`. 
 
 6. Upload the `sales_metrics_model.yaml` file. Make sure to select `SALES_INTELLIGENCE.DATA` as your database + schema and `MODELS` as your 'Stage'.
 <img width="500" alt="Screenshot 2025-03-06 at 11 47 56 PM" src="https://github.com/user-attachments/assets/5cb78028-50a3-48a0-a324-feeb11ad0260" />

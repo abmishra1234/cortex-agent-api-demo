@@ -681,38 +681,39 @@ streamlit run streamlit.py --server.port 8502
 
 ## Testing Your Code
 
+### Understanding the Test Setup
+
+The tests use **mocking** to avoid needing actual Snowflake connections. This is done through:
+
+1. **conftest.py** - Global test configuration that mocks Snowflake modules
+2. **Test fixtures** - Reusable mock objects for each test
+3. **unittest.mock** - Python's built-in mocking library
+
 ### Running Existing Tests
+
+#### Prerequisites
+
+Make sure you're in your virtual environment:
+```powershell
+# If not already activated
+.\venv\Scripts\Activate.ps1
+```
 
 #### Run All Tests
 ```powershell
-# Ensure virtual environment is activated
-.\venv\Scripts\Activate.ps1
-
-# Run all tests
 pytest
 ```
 
-#### Run with Coverage
-```powershell
-# Run tests with coverage report
-pytest --cov=. --cov-report=html
+Output should look like:
 ```
+====================== test session starts ======================
+platform win32 -- Python 3.11.7, pytest-8.4.2, pluggy-1.6.0
+collected 9 items
 
-This creates an HTML coverage report in the `htmlcov/` directory.
+tests/test_database.py ........                           [ 88%]
+tests/test_streamlit_app.py .                             [100%]
 
-#### View Coverage Report
-```powershell
-# Open in default browser
-start htmlcov\index.html
-```
-
-#### Run Specific Test File
-```powershell
-# Test streamlit app
-pytest tests\test_streamlit_app.py
-
-# Test database
-pytest tests\test_database.py
+====================== 9 passed in 0.45s ======================
 ```
 
 #### Run with Verbose Output
@@ -720,187 +721,325 @@ pytest tests\test_database.py
 pytest -v
 ```
 
-### Current Test Status
-
-The current tests are **placeholders** and need to be implemented:
-
-**[`tests/test_streamlit_app.py`](tests/test_streamlit_app.py)**:
-```python
-def test_streamlit_app_functionality():
-    assert True  # Replace with actual test logic
-
-def test_another_feature():
-    assert True  # Replace with actual test logic
+#### Run with Print Statements Visible
+```powershell
+pytest -v -s
 ```
 
-**[`tests/test_database.py`](tests/test_database.py)**:
-```python
-def test_database_interaction():
-    assert True  # Replace with actual tests
+#### Run with Coverage Report
+```powershell
+pytest --cov=. --cov-report=html --cov-report=term
 ```
+
+This generates:
+- Terminal output showing coverage percentages
+- HTML report in `htmlcov/index.html`
+
+#### View HTML Coverage Report
+```powershell
+start htmlcov\index.html
+```
+
+#### Run Specific Test File
+```powershell
+# Test database functions only
+pytest tests\test_database.py
+
+# Test streamlit app only
+pytest tests\test_streamlit_app.py
+```
+
+#### Run Specific Test Function
+```powershell
+pytest tests\test_database.py::test_get_available_tables
+```
+
+#### Run Tests Matching a Pattern
+```powershell
+# Run all tests with 'database' in the name
+pytest -k "database"
+
+# Run all tests with 'sql' in the name
+pytest -k "sql"
+```
+
+### Test File Structure
+
+```
+tests/
+├── conftest.py              # Global configuration and fixtures
+├── test_database.py         # Database interaction tests
+└── test_streamlit_app.py    # Application logic tests
+```
+
+### Understanding Mock Objects
+
+**What is Mocking?**
+Mocking replaces real objects with fake ones for testing. This allows you to:
+- Test without external dependencies (databases, APIs)
+- Control what functions return
+- Verify that functions were called correctly
+
+**Example of a Mock**:
+```python
+# Real code would do this:
+cursor.execute("SELECT * FROM table")
+results = cursor.fetchall()
+
+# In tests, we mock it:
+mock_cursor.fetchall.return_value = [{'id': 1, 'name': 'test'}]
+```
+
+### Current Test Coverage
+
+#### tests/test_database.py
+
+✅ **test_database_interaction** - Basic placeholder test
+✅ **test_get_available_tables** - Tests table retrieval
+✅ **test_run_snowflake_query_success** - Tests successful query execution
+✅ **test_run_snowflake_query_removes_semicolon** - Tests SQL injection prevention
+✅ **test_get_cortex_search_context** - Tests search functionality
+✅ **test_database_connection_error** - Tests error handling
+✅ **test_cortex_search_with_special_characters** - Tests input escaping
+✅ **test_empty_query_results** - Tests empty result handling
+
+#### tests/test_streamlit_app.py
+
+✅ **test_generate_sql_from_question_basic** - Tests SQL generation
+✅ **test_generate_sql_handles_markdown_formatting** - Tests markdown stripping
+✅ **test_agent_api_call_streams_results** - Tests streaming response
+✅ **test_main_initializes_session_state** - Tests main function structure
+✅ **test_chat_message_history_persistence** - Tests message structure
 
 ### Adding New Test Cases
 
-#### Step 1: Understand the Test Structure
+#### Step 1: Choose the Right File
 
-Tests are organized in the `tests/` directory:
-```
-tests/
-├── test_streamlit_app.py    # Tests for Streamlit UI and application logic
-└── test_database.py          # Tests for database interactions
-```
+- **test_database.py** - For database queries, connections, Snowflake interactions
+- **test_streamlit_app.py** - For UI logic, chat functionality, agent behavior
+- **test_new_feature.py** - Create new file for new major features
 
-#### Step 2: Create a New Test File
+#### Step 2: Write Your Test
 
-If you need a new test category:
-
-```powershell
-# Create new test file
-New-Item -Path "tests\test_agent.py" -ItemType File
-```
-
-#### Step 3: Write Test Functions
-
-**Basic Test Template**:
+Follow the **AAA pattern**:
 ```python
-# filepath: tests/test_agent.py
-import pytest
-from unittest.mock import Mock, patch
-
-def test_function_name():
-    """Test description"""
-    # Arrange
-    expected = "expected_value"
+def test_my_new_feature(mock_streamlit_session):
+    """Clear description of what this test verifies"""
+    # Arrange - Set up test data and mocks
+    mock_session, mock_cursor = mock_streamlit_session
+    mock_cursor.fetchall.return_value = [{'result': 'data'}]
     
-    # Act
-    result = function_to_test()
+    # Act - Call the function being tested
+    from streamlit import my_function
+    result = my_function("input")
     
-    # Assert
-    assert result == expected
+    # Assert - Verify the results
+    assert result is not None
+    assert result == expected_value
+    assert mock_cursor.execute.called
 ```
 
-#### Step 4: Example - Testing Database Functions
+#### Step 3: Use Fixtures
 
-Let's implement real tests for [`tests/test_database.py`](tests/test_database.py):
+Fixtures are reusable test components:
 
-````python
-// filepath: [test_database.py](http://_vscodecontentref_/0)
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-import sys
-import os
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+```python
 @pytest.fixture
-def mock_snowflake_connection():
-    """Fixture to create a mock Snowflake connection"""
-    with patch('snowflake.connector.connect') as mock_connect:
-        mock_conn = MagicMock()
-        mock_cursor = MagicMock()
-        mock_conn.cursor.return_value = mock_cursor
-        mock_connect.return_value = mock_conn
-        yield mock_conn, mock_cursor
-
-@pytest.fixture
-def mock_streamlit_session():
-    """Fixture to mock Streamlit session state"""
-    with patch('streamlit.session_state') as mock_session:
-        mock_conn = MagicMock()
-        mock_session.CONN = mock_conn
-        yield mock_session
-
-def test_get_available_tables(mock_streamlit_session):
-    """Test retrieving available tables from Snowflake"""
-    from streamlit import get_available_tables
-    
-    # Arrange
-    mock_cursor = MagicMock()
-    mock_streamlit_session.CONN.cursor.return_value = mock_cursor
-    mock_cursor.fetchall.return_value = [
-        {'name': 'SALES_METRICS'},
-        {'name': 'SALES_CONVERSATIONS'}
+def sample_sales_data():
+    """Provides sample sales data for tests"""
+    return [
+        {'deal_id': 1, 'value': 75000, 'customer': 'TechCorp'},
+        {'deal_id': 2, 'value': 120000, 'customer': 'SecureBank'}
     ]
-    
-    # Act
-    tables = get_available_tables()
-    
-    # Assert
-    assert len(tables) == 2
-    assert 'SALES_METRICS' in tables
-    assert 'SALES_CONVERSATIONS' in tables
-    mock_cursor.execute.assert_called()
 
-def test_run_snowflake_query_success(mock_streamlit_session):
-    """Test successful SQL query execution"""
+def test_with_fixture(sample_sales_data):
+    """Use the fixture in your test"""
+    assert len(sample_sales_data) == 2
+    assert sample_sales_data[0]['value'] == 75000
+```
+
+#### Step 4: Mock External Calls
+
+When testing functions that call other functions:
+
+```python
+from unittest.mock import patch
+
+def test_agent_with_mocked_dependencies():
+    """Test agent while mocking its dependencies"""
+    with patch('streamlit.get_available_tables') as mock_tables, \
+         patch('streamlit.generate_sql_from_question') as mock_gen_sql:
+        
+        # Set up what mocked functions should return
+        mock_tables.return_value = ['SALES_METRICS']
+        mock_gen_sql.return_value = 'SELECT * FROM SALES_METRICS'
+        
+        # Now test your function
+        from streamlit import agent_api_call
+        result = list(agent_api_call("test query", "session1"))
+        
+        # Verify mocked functions were called
+        assert mock_tables.called
+        assert mock_gen_sql.called
+```
+
+#### Step 5: Test Error Cases
+
+Always test what happens when things go wrong:
+
+```python
+def test_handles_database_error(mock_streamlit_session):
+    """Test that database errors are handled gracefully"""
+    mock_session, mock_cursor = mock_streamlit_session
+    
+    # Make the cursor throw an error
+    mock_cursor.execute.side_effect = Exception("Database connection lost")
+    
     from streamlit import run_snowflake_query
+    result = run_snowflake_query("SELECT * FROM table")
     
-    # Arrange
-    mock_cursor = MagicMock()
-    mock_streamlit_session.CONN.cursor.return_value = mock_cursor
-    mock_cursor.fetchall.return_value = [
-        {'DEAL_VALUE': 75000, 'CUSTOMER_NAME': 'TechCorp Inc'}
-    ]
-    query = "SELECT DEAL_VALUE, CUSTOMER_NAME FROM SALES_METRICS"
+    # Should return None instead of crashing
+    assert result is None
+```
+
+### Example: Adding a Complete Test Case
+
+Let's say you added a new function to calculate average deal size:
+
+```python
+# In streamlit.py
+def calculate_average_deal_size(product_line=None):
+    """Calculate average deal size, optionally filtered by product line"""
+    query = "SELECT AVG(DEAL_VALUE) as avg_size FROM SALES_METRICS"
+    if product_line:
+        query += f" WHERE PRODUCT_LINE = '{product_line}'"
     
-    # Act
     results = run_snowflake_query(query)
-    
-    # Assert
-    assert results is not None
-    assert len(results) == 1
-    assert results[0]['DEAL_VALUE'] == 75000
+    if results and len(results) > 0:
+        return results[0]['avg_size']
+    return 0
+```
 
-def test_run_snowflake_query_removes_semicolon(mock_streamlit_session):
-    """Test that semicolons are removed from queries"""
-    from streamlit import run_snowflake_query
-    
+Now add a test:
+
+```python
+# filepath: tests/test_database.py
+# ...existing code...
+
+def test_calculate_average_deal_size_all_products(mock_streamlit_session):
+    """Test calculating average deal size for all products"""
     # Arrange
-    mock_cursor = MagicMock()
-    mock_streamlit_session.CONN.cursor.return_value = mock_cursor
-    query = "SELECT * FROM SALES_METRICS;"
+    mock_session, mock_cursor = mock_streamlit_session
+    mock_cursor.fetchall.return_value = [{'avg_size': 97500.0}]
     
     # Act
-    run_snowflake_query(query)
+    from streamlit import calculate_average_deal_size
+    result = calculate_average_deal_size()
     
     # Assert
-    # Verify that execute was called without semicolon
-    call_args = mock_cursor.execute.call_args_list
-    assert ';' not in str(call_args)
+    assert result == 97500.0
+    assert mock_cursor.execute.called
 
-def test_get_cortex_search_context(mock_streamlit_session):
-    """Test Cortex search context retrieval"""
-    from streamlit import get_cortex_search_context
-    import json
-    
+def test_calculate_average_deal_size_specific_product(mock_streamlit_session):
+    """Test calculating average deal size for specific product line"""
     # Arrange
-    mock_cursor = MagicMock()
-    mock_streamlit_session.CONN.cursor.return_value = mock_cursor
-    search_results_json = json.dumps({
-        'results': [
-            {'content': 'TechCorp conversation...', 'score': 0.95},
-            {'content': 'SecureBank conversation...', 'score': 0.87}
-        ]
-    })
-    mock_cursor.fetchone.return_value = {'SEARCH_RESULTS': search_results_json}
+    mock_session, mock_cursor = mock_streamlit_session
+    mock_cursor.fetchall.return_value = [{'avg_size': 85000.0}]
     
     # Act
-    results = get_cortex_search_context("TechCorp deal")
+    from streamlit import calculate_average_deal_size
+    result = calculate_average_deal_size(product_line="Premium Security")
     
     # Assert
-    assert len(results) == 2
-    assert 'TechCorp' in results[0]['content']
+    assert result == 85000.0
+    # Verify the WHERE clause was included
+    call_args = str(mock_cursor.execute.call_args)
+    assert 'Premium Security' in call_args
 
-def test_database_connection_error(mock_streamlit_session):
-    """Test handling of database connection errors"""
-    from streamlit import run_snowflake_query
-    
+def test_calculate_average_deal_size_no_results(mock_streamlit_session):
+    """Test handling of no results"""
     # Arrange
-    mock_streamlit_session.CONN.cursor.side_effect = Exception("Connection failed")
+    mock_session, mock_cursor = mock_streamlit_session
+    mock_cursor.fetchall.return_value = []
     
     # Act
-    results = run_snowflake_query("SELECT * FROM SALES_METRICS")
+    from streamlit import calculate_average_deal_size
+    result = calculate_average_deal_size()
     
     # Assert
-    assert results is None
+    assert result == 0
+```
+
+### Common Testing Patterns
+
+#### 1. Testing Functions That Stream Data
+
+```python
+def test_streaming_function():
+    """Test a generator function"""
+    generator = my_streaming_function()
+    
+    # Verify it's a generator
+    assert hasattr(generator, '__iter__')
+    assert hasattr(generator, '__next__')
+    
+    # Collect all streamed data
+    results = list(generator)
+    
+    # Verify content
+    assert len(results) > 0
+    assert "expected content" in ''.join(results)
+```
+
+#### 2. Testing Functions With Multiple Return Values
+
+```python
+def test_function_with_multiple_returns():
+    """Test function that can return different things"""
+    # Test success case
+    result = my_function(valid_input)
+    assert result is not None
+    
+    # Test error case
+    result = my_function(invalid_input)
+    assert result is None
+```
+
+#### 3. Testing JSON Parsing
+
+```python
+import json
+
+def test_json_parsing(mock_streamlit_session):
+    """Test parsing of JSON responses"""
+    mock_session, mock_cursor = mock_streamlit_session
+    
+    json_data = json.dumps({'key': 'value', 'number': 42})
+    mock_cursor.fetchone.return_value = {'JSON_FIELD': json_data}
+    
+    result = my_json_function()
+    
+    assert result['key'] == 'value'
+    assert result['number'] == 42
+```
+
+### Troubleshooting Tests
+
+#### Import Errors
+
+**Error**: `ModuleNotFoundError: No module named 'snowflake'`
+
+**Solution**: Make sure `conftest.py` is in the `tests/` directory. This file mocks Snowflake before imports.
+
+#### Test Isolation Issues
+
+**Problem**: Tests pass individually but fail when run together
+
+**Solution**: Use fixtures and ensure each test cleans up:
+```python
+@pytest.fixture
+def clean_session():
+    """Provide a clean session for each test"""
+    yield
+    # Cleanup code here
+```
